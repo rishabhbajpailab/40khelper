@@ -189,6 +189,7 @@ app/                 Pages, layouts and route handlers
   auth/callback/     Exchanges the emailed code for a session
   auth/signout/      Signs out (POST)
   search/            Full-text search (search_rules RPC)
+  stratagems/        Core + detachment stratagems, filtered by phase and turn
   factions/          Datasheet browser: factions → datasheets → datasheet card
   components/        Shared UI (site nav)
   lists/             The signed-in user's army lists
@@ -221,7 +222,7 @@ supabase/
 - [x] Search across datasheets, weapons, abilities and stratagems (Postgres full-text search)
 - [ ] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)
 - [ ] Shareable public list links
-- [ ] Stratagem quick-reference filtered by phase and detachment
+- [x] Stratagem quick-reference filtered by phase, turn and detachment
 - [ ] Game tracker: CP, VP, turn and phase (Supabase Realtime for a shared table view)
 
 ## Data & IP
