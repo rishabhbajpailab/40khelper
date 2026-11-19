@@ -91,6 +91,15 @@ npm run dev                 # http://localhost:3000, runs in the real Workers ru
 
 To sign in locally, request a magic link and open it from the Mailpit inbox at http://127.0.0.1:54324. Studio, Supabase's table editor and SQL console, is at http://127.0.0.1:54323.
 
+### Loading data
+
+The local seed has no datasheets. Load the fictional example faction, or your own files in the
+format described in [docs/data-format.md](docs/data-format.md):
+
+```bash
+SUPABASE_SECRET_KEY=$(npx supabase status -o json | jq -r .SECRET_KEY) npm run data:import -- data/example.json
+```
+
 ### Changing the schema
 
 ```bash
@@ -115,6 +124,7 @@ npm run db:types               # regenerate types/database.ts
 | `npm run db:new <name>` | Create a new migration file |
 | `npm run db:push` | Apply migrations to the linked hosted project (`npx supabase link` first) |
 | `npm run db:types` | Regenerate `types/database.ts` from the local DB |
+| `npm run data:import -- <files>` | Load rules data JSON into Supabase (`--dry-run` to validate only) |
 
 ## Deployment
 
@@ -185,6 +195,8 @@ cloudflare.config.ts Worker name, domain, cron schedules and bindings
 worker/index.ts      Worker entry: vinext fetch handler + scheduled() jobs
 vite.config.ts       vinext + Cloudflare Vite plugin
 types/database.ts    Generated database types (npm run db:types)
+scripts/import-data.ts  JSON rules data → Supabase (docs/data-format.md)
+data/example.json    Fictional sample faction for local testing
 supabase/
   config.toml        Local stack and auth settings
   migrations/        SQL schema, RLS policies, triggers and views
@@ -199,7 +211,7 @@ supabase/
 - [x] Magic-link auth, session middleware and a "my lists" page
 - [x] Hosted Supabase project with migrations applied
 - [x] Cloudflare Workers hosting via vinext, with KV and R2 bindings
-- [ ] Data import script (CSV/JSON → Supabase with the service role key)
+- [x] Data import script (JSON → Supabase with the secret key; see [docs/data-format.md](docs/data-format.md))
 - [ ] Datasheet browser: faction list → datasheet list → datasheet card
 - [ ] Search across datasheets, weapons and abilities (Postgres full-text search)
 - [ ] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)

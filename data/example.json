@@ -1,0 +1,181 @@
+{
+  "abilities": [
+    { "name": "Deep Strike", "type": "core", "description": "Placeholder text: this unit can be set up in Reserves." },
+    { "name": "Leader", "type": "core", "description": "Placeholder text: this model can be attached to a Bodyguard unit." },
+    { "name": "Scouts", "type": "core", "description": "Placeholder text: this unit can make a move before the first turn." }
+  ],
+  "core_stratagems": [
+    {
+      "name": "Example Re-roll",
+      "cp": 1,
+      "category": "battle_tactic",
+      "phase": "any",
+      "turn": "Either player's turn",
+      "when": "Placeholder: after you make a roll.",
+      "target": "Placeholder: that roll.",
+      "effect": "Placeholder: re-roll it."
+    }
+  ],
+  "factions": [
+    {
+      "slug": "example-legion",
+      "name": "Example Legion",
+      "army_rule": "Placeholder army rule. This faction is fictional test data, not real rules.",
+      "detachments": [
+        {
+          "name": "Vanguard Cohort",
+          "rule": "Placeholder detachment rule.",
+          "enhancements": [
+            { "name": "Lucky Charm", "points": 15, "description": "Placeholder enhancement.", "restriction": "INFANTRY model only" },
+            { "name": "Old Banner", "points": 25, "description": "Placeholder enhancement." }
+          ],
+          "stratagems": [
+            {
+              "name": "Hold the Line",
+              "cp": 1,
+              "category": "battle_tactic",
+              "phase": "fight",
+              "turn": "Opponent's turn",
+              "when": "Placeholder: fight phase.",
+              "target": "Placeholder: one unit.",
+              "effect": "Placeholder: something good happens."
+            },
+            {
+              "name": "Covering Fire",
+              "cp": 2,
+              "category": "strategic_ploy",
+              "phase": "shooting",
+              "turn": "Your turn",
+              "effect": "Placeholder: shoot better."
+            }
+          ]
+        }
+      ],
+      "datasheets": [
+        {
+          "slug": "line-troopers",
+          "name": "Line Troopers",
+          "role": "battleline",
+          "composition": "1 Sergeant and 4-9 Troopers",
+          "base_size": "32mm",
+          "profiles": [
+            { "name": "Line Trooper", "movement": "6\"", "toughness": 4, "save": "3+", "wounds": 2, "leadership": "6+", "oc": 2 }
+          ],
+          "sizes": [
+            { "models": 5, "points": 80 },
+            { "models": 10, "points": 160 }
+          ],
+          "weapons": [
+            {
+              "name": "Service rifle",
+              "profiles": [
+                { "range": "24\"", "attacks": 2, "skill": "3+", "strength": 4, "ap": -1, "damage": 1, "keywords": ["assault", "heavy"] }
+              ]
+            },
+            {
+              "name": "Grenade launcher",
+              "default": false,
+              "profiles": [
+                { "name": "Grenade launcher - frag", "range": 24, "attacks": "D3", "skill": 4, "strength": 4, "ap": 0, "damage": 1, "keywords": ["BLAST"] },
+                { "name": "Grenade launcher - krak", "range": 24, "attacks": 1, "skill": 4, "strength": 9, "ap": -2, "damage": "D3" }
+              ]
+            },
+            {
+              "name": "Close combat weapon",
+              "profiles": [{ "range": "Melee", "attacks": 3, "skill": "3+", "strength": 4, "ap": 0, "damage": 1 }]
+            }
+          ],
+          "abilities": [
+            { "name": "Scouts", "type": "core", "value": "6\"" },
+            { "name": "Steady Advance", "type": "datasheet", "description": "Placeholder datasheet ability." }
+          ],
+          "keywords": ["Infantry", "Battleline", "Grenades"],
+          "faction_keywords": ["Example Legion"]
+        },
+        {
+          "slug": "assault-squad",
+          "name": "Assault Squad",
+          "composition": "5 Assault Troopers",
+          "profiles": [
+            { "name": "Assault Trooper", "movement": 12, "toughness": 4, "save": 3, "wounds": 2, "leadership": 6, "oc": 1 }
+          ],
+          "sizes": [{ "models": 5, "points": 90 }],
+          "weapons": [
+            {
+              "name": "Chainblade",
+              "profiles": [{ "range": "Melee", "attacks": 4, "skill": "3+", "strength": 4, "ap": -1, "damage": 1 }]
+            }
+          ],
+          "abilities": [{ "name": "Deep Strike", "type": "core" }],
+          "keywords": ["Infantry", "Jump Pack", "Fly"],
+          "faction_keywords": ["Example Legion"]
+        },
+        {
+          "slug": "captain",
+          "name": "Captain",
+          "role": "character",
+          "composition": "1 Captain",
+          "profiles": [
+            { "name": "Captain", "movement": 6, "toughness": 4, "save": "3+", "invuln": "4+", "wounds": 5, "leadership": "6+", "oc": 1 }
+          ],
+          "sizes": [{ "models": 1, "points": 80 }],
+          "weapons": [
+            {
+              "name": "Master-crafted pistol",
+              "profiles": [{ "range": 12, "attacks": 1, "skill": "2+", "strength": 5, "ap": -1, "damage": 2, "keywords": ["PISTOL"] }]
+            },
+            {
+              "name": "Power blade",
+              "profiles": [{ "range": "Melee", "attacks": 6, "skill": "2+", "strength": 5, "ap": -2, "damage": 2 }]
+            }
+          ],
+          "abilities": [
+            { "name": "Leader", "type": "core" },
+            { "name": "Rites of Battle", "type": "datasheet", "description": "Placeholder: once per battle round, a stratagem costs 0 CP." }
+          ],
+          "keywords": ["Infantry", "Character", "Captain"],
+          "faction_keywords": ["Example Legion"],
+          "leads": ["line-troopers", "assault-squad"]
+        },
+        {
+          "slug": "warlord-prime",
+          "name": "Warlord Prime",
+          "role": "epic_hero",
+          "composition": "1 Warlord Prime",
+          "profiles": [
+            { "name": "Warlord Prime", "movement": 6, "toughness": 5, "save": "2+", "invuln": "4+", "wounds": 6, "leadership": "5+", "oc": 1 }
+          ],
+          "sizes": [{ "models": 1, "points": 120 }],
+          "weapons": [
+            {
+              "name": "Relic hammer",
+              "profiles": [{ "range": "Melee", "attacks": 5, "skill": "2+", "strength": 8, "ap": -2, "damage": 3 }]
+            }
+          ],
+          "abilities": [{ "name": "Leader", "type": "core" }],
+          "keywords": ["Infantry", "Character", "Epic Hero"],
+          "faction_keywords": ["Example Legion"],
+          "leads": ["line-troopers"]
+        },
+        {
+          "slug": "battle-tank",
+          "name": "Battle Tank",
+          "composition": "1 Battle Tank",
+          "profiles": [
+            { "name": "Battle Tank", "movement": 10, "toughness": 11, "save": "3+", "wounds": 13, "leadership": "6+", "oc": 3 }
+          ],
+          "sizes": [{ "models": 1, "points": 200 }],
+          "weapons": [
+            {
+              "name": "Battle cannon",
+              "profiles": [{ "range": 48, "attacks": "D6+3", "skill": "4+", "strength": 10, "ap": -1, "damage": 3, "keywords": ["BLAST"] }]
+            }
+          ],
+          "abilities": [{ "name": "Deadly Demise", "type": "core", "value": "D6" }],
+          "keywords": ["Vehicle", "Smoke"],
+          "faction_keywords": ["Example Legion"]
+        }
+      ]
+    }
+  ]
+}
