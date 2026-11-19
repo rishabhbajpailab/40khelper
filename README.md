@@ -2,7 +2,7 @@
 
 A web companion for playing **Warhammer 40,000**: look up datasheets fast, build and check army lists, and keep the table moving on game day.
 
-> Status: early. The data model is in place, and the UI is still the Next.js starter page. See [Roadmap](#roadmap).
+> Status: early. The data model, auth and row-level security are in place. The UI has sign-in and a "my lists" page; the datasheet browser and army builder come next. See [Roadmap](#roadmap).
 
 ## What it's for
 
@@ -15,60 +15,84 @@ A web companion for playing **Warhammer 40,000**: look up datasheets fast, build
 
 | Layer | Choice |
 | --- | --- |
-| Framework | [Next.js 13](https://nextjs.org/) (App Router) + React 18 + TypeScript |
+| Framework | [Next.js 14](https://nextjs.org/) (App Router, Server Actions) + React 18 + TypeScript |
 | Styling | Tailwind CSS, Headless UI, Heroicons, Framer Motion |
-| Data | PostgreSQL (any provider, 14+) via [Prisma](https://www.prisma.io/) |
-| Auth | [Supabase](https://supabase.com/) (army lists belong to a Supabase user id) |
-| Client data | React Query, validation with Zod |
-| Hosting | Anywhere that runs Node 18 or a container (standalone Next.js output + Dockerfile) |
+| Backend | [Supabase](https://supabase.com/): Postgres, Auth (email magic links) and row-level security |
+| Data access | `@supabase/supabase-js` + `@supabase/ssr`, typed from the database with `supabase gen types` |
+| Schema | Plain SQL migrations in `supabase/migrations`, managed by the Supabase CLI |
+| Hosting | Anywhere that runs Node 20+ or a container (standalone Next.js output + Dockerfile) |
+
+Supabase is open source and [self-hostable](https://supabase.com/docs/guides/self-hosting), so the hosted platform is a convenience, not a lock-in.
 
 ## Data model
 
-The schema lives in [`prisma/schema.prisma`](prisma/schema.prisma). It follows the current datasheet layout:
+The schema lives in [`supabase/migrations`](supabase/migrations). It follows the current datasheet layout:
 
 ```
-Faction ──┬── Detachment ──┬── Enhancement
-          │                └── Stratagem          (core stratagems have no detachment)
-          │
-          └── Datasheet ──┬── ModelProfile        M / T / Sv / Inv / W / Ld / OC
-                          ├── UnitSize            models → points
-                          ├── DatasheetWeapon ──── Weapon ── WeaponProfile
-                          ├── DatasheetAbility ─── Ability   (core / faction / datasheet / wargear)
-                          ├── DatasheetKeyword ─── Keyword
-                          └── LeaderAttachment    which units a Leader can join
+factions ──┬── detachments ──┬── enhancements
+           │                 └── stratagems         (core stratagems have no detachment)
+           │
+           └── datasheets ──┬── model_profiles      M / T / Sv / Inv / W / Ld / OC
+                            ├── unit_sizes          models → points
+                            ├── datasheet_weapons ── weapons ── weapon_profiles
+                            ├── datasheet_abilities ─ abilities (core / faction / datasheet / wargear)
+                            ├── datasheet_keywords ── keywords
+                            └── leader_attachments  which units a Leader can join
 
-ArmyList (owned by a user) ── ArmyListUnit ── Datasheet + UnitSize (+ Enhancement, + attached Leader)
+auth.users ── profiles
+          └── army_lists ── army_list_units ── datasheets + unit_sizes (+ enhancement, + attached Leader)
+                         └── army_list_totals (view: points used vs. limit)
 ```
 
 Modelling notes:
 
-- **Dice stats are strings.** Attacks, Damage and Movement can be `D6+1` or `2D3`, so they're stored as text. Characteristics shown as `3+` (BS, WS, Sv, Ld) are stored as the number `3`.
-- **Weapons have profiles.** A weapon like a missile launcher has frag and krak profiles. Weapon abilities (`ASSAULT`, `RAPID FIRE 1`, `LETHAL HITS`) are a string array on each profile.
-- **Parameterised abilities.** `DatasheetAbility.value` holds the number for abilities like Scouts 6", Deadly Demise D3 or Feel No Pain 5+.
-- **Replaced from the first draft:** `warhammer_units` became `Datasheet`/`ModelProfile`, `relics` became `Enhancement`, `auras` became `Ability.isAura`, the separate ranged and melee weapon tables became `Weapon`/`WeaponProfile`, and stratagems now hang off detachments instead of units.
+- **Dice stats are text.** Attacks, Damage and Movement can be `D6+1` or `2D3`. Characteristics shown as `3+` (BS, WS, Sv, Ld) are stored as the number `3`, and AP as a non-positive number (`-2`).
+- **Weapons have profiles.** A missile launcher has frag and krak profiles. Weapon abilities (`ASSAULT`, `RAPID FIRE 1`, `LETHAL HITS`) are a `text[]` on each profile.
+- **Parameterised abilities.** `datasheet_abilities.value` holds the number for Scouts 6", Deadly Demise D3 or Feel No Pain 5+.
+- **Leaders stay in their list.** A composite foreign key means a unit can only be attached to another unit in the same army list.
+- **Profiles are automatic.** A trigger on `auth.users` creates a `profiles` row on sign-up.
+
+### Security (row-level security)
+
+Every table has RLS enabled, so the browser can query Supabase directly and still only see what it should.
+
+| Data | Read | Write |
+| --- | --- | --- |
+| Rules data (factions, datasheets, weapons, stratagems, ...) | Everyone, signed in or not | Only the service role, the SQL editor or migrations |
+| `profiles` | Signed-in users | The user it belongs to |
+| `army_lists`, `army_list_units` | The owner, or anyone if `is_public` is set | The owner |
+
+`army_list_totals` is a `security_invoker` view, so it follows the same rules as the tables beneath it.
 
 ## Getting started
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL 14+. The bundled `docker-compose.yml` starts one locally, or point at any managed or self-hosted instance.
+- Node.js 20+
+- Docker, for the local Supabase stack (Postgres, Auth, Studio and a test inbox)
 
 ### Setup
 
 ```bash
 git clone https://github.com/rishabhbajpailab/40khelper.git
 cd 40khelper
-npm install                 # also runs `prisma generate`
+npm install
 
-docker compose up -d db     # optional: local Postgres on :5432
+npm run db:start            # starts local Supabase, applies migrations and seed.sql
+cp .env.example .env.local  # paste the API URL and publishable key it printed
 
-cp .env.example .env.local  # used by Next.js
-cp .env.example .env        # used by the Prisma CLI
-# the defaults match the compose database; change them for any other Postgres
-
-npm run db:migrate          # apply migrations to your database
 npm run dev                 # http://localhost:3000
+```
+
+To sign in locally, request a magic link and open it from the Mailpit inbox at http://127.0.0.1:54324. Studio, Supabase's table editor and SQL console, is at http://127.0.0.1:54323.
+
+### Changing the schema
+
+```bash
+npm run db:new add_something   # creates supabase/migrations/<timestamp>_add_something.sql
+# write the SQL, including RLS policies for any new table
+npm run db:reset               # rebuild the local DB from migrations + seed
+npm run db:types               # regenerate types/database.ts
 ```
 
 ### Scripts
@@ -78,58 +102,68 @@ npm run dev                 # http://localhost:3000
 | `npm run dev` | Start the dev server |
 | `npm run build` / `start` | Production build / serve |
 | `npm run lint` | ESLint |
-| `npm run db:generate` | Regenerate the Prisma client |
-| `npm run db:migrate` | Create and apply a migration from the schema (development) |
-| `npm run db:deploy` | Apply committed migrations (production / CI) |
-| `npm run db:studio` | Browse the database in Prisma Studio |
+| `npm run db:start` / `db:stop` | Start / stop the local Supabase stack |
+| `npm run db:reset` | Recreate the local DB from migrations and `seed.sql` |
+| `npm run db:new <name>` | Create a new migration file |
+| `npm run db:push` | Apply migrations to the linked hosted project (`npx supabase link` first) |
+| `npm run db:types` | Regenerate `types/database.ts` from the local DB |
 
 ## Deployment
 
-The app doesn't depend on any hosting platform. It needs Node 18+ and a PostgreSQL database reachable through `DATABASE_URL` and `DIRECT_URL`. If you don't use a connection pooler, set both to the same value.
+1. Create a Supabase project (hosted or self-hosted), then run `npx supabase link --project-ref <ref>` and `npm run db:push`.
+2. In the project's Auth settings, set the **Site URL** to your app's URL and add `https://<your-domain>/auth/callback` to the redirect URLs.
+3. Deploy the app with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` set.
 
-**Container (any host that runs Docker):**
+**Container:** `NEXT_PUBLIC_*` values are baked into the client bundle at build time, so pass them as build args:
 
 ```bash
-docker build -t 40khelper .
-docker run --rm -e DATABASE_URL=... -e DIRECT_URL=... 40khelper \
-  node node_modules/prisma/build/index.js migrate deploy   # once per release
-docker run -p 3000:3000 -e DATABASE_URL=... -e DIRECT_URL=... 40khelper
+docker build -t 40khelper \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \
+  --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<key> .
+docker run -p 3000:3000 40khelper
 ```
-
-Or start the whole stack locally with `docker compose up --build`.
 
 **Plain Node:**
 
 ```bash
-npm ci && npm run build && npm run db:deploy
+npm ci && npm run build
 cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
 node .next/standalone/server.js
 ```
 
+Behind a reverse proxy, forward `Host` (or `X-Forwarded-Host`) and `X-Forwarded-Proto` so auth redirects point at the public URL.
+
 ## Project layout
 
 ```
-app/              Next.js App Router pages, layouts and API route handlers
-prisma/           Prisma schema and migrations
-utils/            Shared server utilities (Prisma client singleton, cache helpers)
-public/           Static assets
+app/                 Pages, layouts and route handlers
+  login/             Magic-link sign-in (Server Action)
+  auth/callback/     Exchanges the emailed code for a session
+  auth/signout/      Signs out (POST)
+  lists/             The signed-in user's army lists
+middleware.ts        Refreshes the Supabase session; gates /lists
+utils/supabase/      Browser, server and middleware Supabase clients
+types/database.ts    Generated database types (npm run db:types)
+supabase/
+  config.toml        Local stack and auth settings
+  migrations/        SQL schema, RLS policies, triggers and views
+  seed.sql           Local-only seed data
 ```
 
 ## Roadmap
 
 - [x] Next.js + Tailwind scaffold
-- [x] Postgres + Prisma connected
 - [x] Data model for factions, detachments, datasheets, weapons, abilities, stratagems and army lists
-- [x] Initial migration
-- [x] Platform-neutral deployment (standalone build, Dockerfile, docker-compose)
-- [ ] Seed script for one faction
-- [ ] Data import pipeline (CSV/JSON → Postgres)
+- [x] Supabase migrations, row-level security and generated types
+- [x] Magic-link auth, session middleware and a "my lists" page
+- [x] Platform-neutral deployment (standalone build, Dockerfile)
+- [ ] Data import script (CSV/JSON → Supabase with the service role key)
 - [ ] Datasheet browser: faction list → datasheet list → datasheet card
-- [ ] Search across datasheets, weapons and abilities
-- [ ] Supabase auth and saved army lists
-- [ ] Army builder with points totals and validation (Rule of Three, enhancement limits, Leader attachments)
+- [ ] Search across datasheets, weapons and abilities (Postgres full-text search)
+- [ ] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)
+- [ ] Shareable public list links
 - [ ] Stratagem quick-reference filtered by phase and detachment
-- [ ] Game tracker: CP, VP, turn and phase
+- [ ] Game tracker: CP, VP, turn and phase (Supabase Realtime for a shared table view)
 
 ## Data & IP
 

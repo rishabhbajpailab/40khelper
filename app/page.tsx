@@ -1,3 +1,6 @@
+import Link from 'next/link'
+import { createClient } from '@/utils/supabase/server'
+
 const features = [
   {
     title: 'Datasheets',
@@ -17,9 +20,33 @@ const features = [
   },
 ]
 
-export default function Home() {
+export default async function Home() {
+  const supabase = createClient()
+  const { data } = await supabase.auth.getClaims()
+  const email = data?.claims.email as string | undefined
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-12 px-6 py-16">
+      <nav className="flex items-center justify-end gap-4 text-sm">
+        {email ? (
+          <>
+            <Link href="/lists" className="hover:underline">
+              My lists
+            </Link>
+            <span className="opacity-60">{email}</span>
+            <form action="/auth/signout" method="post">
+              <button type="submit" className="hover:underline">
+                Sign out
+              </button>
+            </form>
+          </>
+        ) : (
+          <Link href="/login" className="hover:underline">
+            Sign in
+          </Link>
+        )}
+      </nav>
+
       <header>
         <h1 className="text-4xl font-bold tracking-tight">40k Helper</h1>
         <p className="mt-3 max-w-2xl text-lg opacity-70">

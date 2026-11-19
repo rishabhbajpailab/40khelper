@@ -5,4 +5,5 @@ node_modules
 !.env.example
 npm-debug.log*
 Dockerfile
-docker-compose.yml
+supabase/.temp
+supabase/.branches
