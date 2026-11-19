@@ -1,10 +1,9 @@
 import { sendMagicLink } from './actions'
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { next?: string; sent?: string; error?: string }
+export default async function LoginPage(props: {
+  searchParams: Promise<{ next?: string; sent?: string; error?: string }>
 }) {
+  const searchParams = await props.searchParams
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
       <h1 className="text-2xl font-bold">Sign in</h1>

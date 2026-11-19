@@ -15,14 +15,17 @@ A web companion for playing **Warhammer 40,000**: look up datasheets fast, build
 
 | Layer | Choice |
 | --- | --- |
-| Framework | [Next.js 14](https://nextjs.org/) (App Router, Server Actions) + React 18 + TypeScript |
+| Framework | [Next.js 15](https://nextjs.org/) App Router APIs (Server Components, Server Actions) + React 19 + TypeScript, built with [vinext](https://github.com/cloudflare/vinext) on Vite |
 | Styling | Tailwind CSS, Headless UI, Heroicons, Framer Motion |
 | Backend | [Supabase](https://supabase.com/): Postgres, Auth (email magic links) and row-level security |
 | Data access | `@supabase/supabase-js` + `@supabase/ssr`, typed from the database with `supabase gen types` |
 | Schema | Plain SQL migrations in `supabase/migrations`, managed by the Supabase CLI |
-| Hosting | Anywhere that runs Node 20+ or a container (standalone Next.js output + Dockerfile) |
+| Hosting | [Cloudflare Workers](https://developers.cloudflare.com/workers/) (config in `cloudflare.config.ts`) |
+| Key-value store | Cloudflare Workers KV (`KV` binding) |
+| Object storage | Cloudflare R2 (`BUCKET` binding, bucket `40khelper-assets`) |
+| Background jobs | Cloudflare Cron Triggers on the same Worker (`worker/index.ts`); Queues when needed |
 
-Supabase is open source and [self-hostable](https://supabase.com/docs/guides/self-hosting), so the hosted platform is a convenience, not a lock-in.
+**What goes where:** Supabase owns relational data, auth and row-level security. Everything else (compute, caching, files, scheduled work) runs on Cloudflare.
 
 ## Data model
 
@@ -68,8 +71,8 @@ Every table has RLS enabled, so the browser can query Supabase directly and stil
 
 ### Prerequisites
 
-- Node.js 20+
-- Docker, for the local Supabase stack (Postgres, Auth, Studio and a test inbox)
+- Node.js 22+
+- Docker, only if you want the local Supabase stack (Postgres, Auth, Studio and a test inbox). Without it, point `.env.local` at the hosted project.
 
 ### Setup
 
@@ -81,8 +84,10 @@ npm install
 npm run db:start            # starts local Supabase, applies migrations and seed.sql
 cp .env.example .env.local  # paste the API URL and publishable key it printed
 
-npm run dev                 # http://localhost:3000
+npm run dev                 # http://localhost:3000, runs in the real Workers runtime (workerd)
 ```
+
+`npm run dev` simulates the KV and R2 bindings locally, so nothing touches the production namespace or bucket.
 
 To sign in locally, request a magic link and open it from the Mailpit inbox at http://127.0.0.1:54324. Studio, Supabase's table editor and SQL console, is at http://127.0.0.1:54323.
 
@@ -99,9 +104,12 @@ npm run db:types               # regenerate types/database.ts
 
 | Script | What it does |
 | --- | --- |
-| `npm run dev` | Start the dev server |
-| `npm run build` / `start` | Production build / serve |
-| `npm run lint` | ESLint |
+| `npm run dev` | Start the dev server (Vite + workerd) |
+| `npm run build` | Production build into `.cloudflare/output` |
+| `npm run preview` | Build, then serve the built Worker locally |
+| `npm run deploy` | Deploy the built Worker to Cloudflare |
+| `npm run lint` / `typecheck` | ESLint / regenerate binding types and run `tsc` |
+| `npm run cf:types` | Regenerate `.cloudflare/types` after changing bindings |
 | `npm run db:start` / `db:stop` | Start / stop the local Supabase stack |
 | `npm run db:reset` | Recreate the local DB from migrations and `seed.sql` |
 | `npm run db:new <name>` | Create a new migration file |
@@ -110,39 +118,72 @@ npm run db:types               # regenerate types/database.ts
 
 ## Deployment
 
-1. Create a Supabase project (hosted or self-hosted), then run `npx supabase link --project-ref <ref>` and `npm run db:push`.
-2. In the project's Auth settings, set the **Site URL** to your app's URL and add `https://<your-domain>/auth/callback` to the redirect URLs.
-3. Deploy the app with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` set.
+Production runs on **Cloudflare Workers** with **Supabase** as the backend.
 
-**Container:** `NEXT_PUBLIC_*` values are baked into the client bundle at build time, so pass them as build args:
+| Resource | Where | ID / name |
+| --- | --- | --- |
+| Postgres, Auth, RLS | Supabase project `40khelper` (us-west-1) | `hhxsziiunynimvjtzyvb` |
+| App (Worker) | Cloudflare Workers, at https://40k.glizzy.dev | `40khelper` |
+| KV namespace | Cloudflare | `40khelper-kv` (`05a81431a55b44d5b76747b1ace93132`) |
+| R2 bucket | Cloudflare | `40khelper-assets` |
+
+The public Supabase URL and publishable key are committed in `.env.production`, because `NEXT_PUBLIC_*` values are inlined at build time and are public anyway. Server-only secrets (such as a Supabase secret key for an import job) go in Worker secrets: `npx cf secrets put <NAME>`, then declare them with `bindings.secret()` in `cloudflare.config.ts`.
+
+### Deploy with Workers Builds (recommended)
+
+Cloudflare builds and deploys on every push, so no GitHub Actions or API tokens are needed:
+
+1. Cloudflare dashboard → Workers & Pages → **40khelper** (or Create → Import a repository) → Settings → Builds → connect `rishabhbajpailab/40khelper`.
+2. Build command `npm run build`, deploy command `npm run deploy`, production branch `main`.
+
+### Deploy from your machine
 
 ```bash
-docker build -t 40khelper \
-  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \
-  --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<key> .
-docker run -p 3000:3000 40khelper
+npx cf auth login
+npx @vinext/cloudflare deploy --dry-run
+npm run build && npm run deploy
 ```
 
-**Plain Node:**
+### Scheduled jobs
+
+`worker/index.ts` wraps vinext's request handler and adds a `scheduled()` handler. Schedules live in `cloudflare.config.ts`. There's currently one:
+
+- **Supabase keep-alive**, daily at 09:17 UTC: runs one tiny read so the Free plan project isn't paused for inactivity. Signed-out traffic doesn't touch the database, so without it the project would pause after about a week of no real use. Its output appears in the Worker's logs.
+
+To test it locally, run `npm run preview` and POST `{"cron":"17 9 * * *"}` to `/cdn-cgi/local/explorer/api/local/scheduled?worker=40khelper`.
+
+### Running cost
+
+On the Workers Free and Supabase Free plans, idle use plus background bot traffic costs **$0/month**. Free plan limits fail closed (requests error until the daily reset) rather than billing. The public `/api/health` route only reads from KV, so it can't use up KV's 1,000 writes a day.
+
+### Supabase auth URLs
+
+The app is served at **https://40k.glizzy.dev**. It's a Workers Custom Domain on the Cloudflare-managed `glizzy.dev` zone, declared in `cloudflare.config.ts`, so the first deploy creates its DNS record and certificate. The `workers.dev` URL is turned off.
+
+In Supabase → Authentication → URL Configuration, set the **Site URL** to `https://40k.glizzy.dev` and add `https://40k.glizzy.dev/auth/callback` to the redirect URLs. Magic links won't land back in the app until this is done.
+
+### Schema changes in production
 
 ```bash
-npm ci && npm run build
-cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
-node .next/standalone/server.js
+npx supabase link --project-ref hhxsziiunynimvjtzyvb
+npm run db:push
 ```
-
-Behind a reverse proxy, forward `Host` (or `X-Forwarded-Host`) and `X-Forwarded-Proto` so auth redirects point at the public URL.
 
 ## Project layout
 
 ```
 app/                 Pages, layouts and route handlers
+  api/health/        Liveness check (read-only KV probe)
   login/             Magic-link sign-in (Server Action)
   auth/callback/     Exchanges the emailed code for a session
   auth/signout/      Signs out (POST)
   lists/             The signed-in user's army lists
 middleware.ts        Refreshes the Supabase session; gates /lists
-utils/supabase/      Browser, server and middleware Supabase clients
+utils/supabase/      Browser, server and middleware Supabase clients, plus the keep-alive job
+utils/cloudflare.ts  KV and R2 bindings, plus a KV read-through cache helper
+cloudflare.config.ts Worker name, domain, cron schedules and bindings
+worker/index.ts      Worker entry: vinext fetch handler + scheduled() jobs
+vite.config.ts       vinext + Cloudflare Vite plugin
 types/database.ts    Generated database types (npm run db:types)
 supabase/
   config.toml        Local stack and auth settings
@@ -156,7 +197,8 @@ supabase/
 - [x] Data model for factions, detachments, datasheets, weapons, abilities, stratagems and army lists
 - [x] Supabase migrations, row-level security and generated types
 - [x] Magic-link auth, session middleware and a "my lists" page
-- [x] Platform-neutral deployment (standalone build, Dockerfile)
+- [x] Hosted Supabase project with migrations applied
+- [x] Cloudflare Workers hosting via vinext, with KV and R2 bindings
 - [ ] Data import script (CSV/JSON → Supabase with the service role key)
 - [ ] Datasheet browser: faction list → datasheet list → datasheet card
 - [ ] Search across datasheets, weapons and abilities (Postgres full-text search)

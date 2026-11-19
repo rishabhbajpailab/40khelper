@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 // Row-level security means this query only returns lists the signed-in user owns
 // (plus public ones), with no owner filter needed in the app.
 export default async function ListsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: claims } = await supabase.auth.getClaims()
   const userId = claims?.claims.sub
 
