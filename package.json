@@ -7,24 +7,27 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prismaPull": "dotenv -e .env.local prisma db pull"
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:new": "supabase migration new",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --local --schema public > types/database.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.14",
     "@heroicons/react": "^2.0.17",
-    "@prisma/client": "^4.14.1",
-    "@supabase/supabase-js": "^2.21.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.2",
     "@types/node": "18.16.3",
-    "@types/react": "18.2.0",
-    "@types/react-dom": "18.2.1",
-    "@vercel/postgres": "^0.3.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "autoprefixer": "10.4.14",
     "eslint": "8.39.0",
-    "eslint-config-next": "13.3.4",
+    "eslint-config-next": "^14.2.35",
     "framer-motion": "^10.12.5",
-    "next": "13.3.4",
+    "next": "^14.2.35",
     "postcss": "8.4.23",
-    "prisma": "^4.14.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-query": "^3.39.3",
@@ -32,5 +35,8 @@
     "tailwindcss": "3.3.2",
     "typescript": "5.0.4",
     "zod": "^3.21.4"
+  },
+  "devDependencies": {
+    "supabase": "^3.2.0"
   }
 }
