@@ -9,6 +9,11 @@ export default defineConfig({
     name: '40khelper',
     entrypoint: 'vinext/server/fetch-handler',
     compatibilityDate: '2026-11-19',
+    // Custom Domain on the Cloudflare-managed glizzy.dev zone. Deploying creates
+    // the DNS record and certificate; no manual DNS changes are needed.
+    domains: ['40k.glizzy.dev'],
+    // Serve only on the custom domain, so Supabase auth redirects have one origin.
+    workersDev: false,
     assets: {
       htmlHandling: 'none',
       notFoundHandling: 'none',

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
+  metadataBase: new URL('https://40k.glizzy.dev'),
   title: '40k Helper',
   description: 'Datasheets, army lists and game-day tools for Warhammer 40,000',
 }

@@ -123,7 +123,7 @@ Production runs on **Cloudflare Workers** with **Supabase** as the backend.
 | Resource | Where | ID / name |
 | --- | --- | --- |
 | Postgres, Auth, RLS | Supabase project `40khelper` (us-west-1) | `hhxsziiunynimvjtzyvb` |
-| App (Worker) | Cloudflare Workers | `40khelper` |
+| App (Worker) | Cloudflare Workers, at https://40k.glizzy.dev | `40khelper` |
 | KV namespace | Cloudflare | `40khelper-kv` (`05a81431a55b44d5b76747b1ace93132`) |
 | R2 bucket | Cloudflare | `40khelper-assets` |
 
@@ -146,7 +146,9 @@ npm run build && npm run deploy
 
 ### Supabase auth URLs
 
-After the first deploy, in Supabase → Authentication → URL Configuration, set the **Site URL** to the Worker URL (e.g. `https://40khelper.<subdomain>.workers.dev` or your custom domain) and add `https://<that-host>/auth/callback` to the redirect URLs. Magic links won't land back in the app until this is done.
+The app is served at **https://40k.glizzy.dev**. It's a Workers Custom Domain on the Cloudflare-managed `glizzy.dev` zone, declared in `cloudflare.config.ts`, so the first deploy creates its DNS record and certificate. The `workers.dev` URL is turned off.
+
+In Supabase → Authentication → URL Configuration, set the **Site URL** to `https://40k.glizzy.dev` and add `https://40k.glizzy.dev/auth/callback` to the redirect URLs. Magic links won't land back in the app until this is done.
 
 ### Schema changes in production
 
