@@ -8,6 +8,15 @@ const PROTECTED_PREFIXES = ['/lists']
 
 // Refreshes the Supabase session cookie on every request and gates protected pages.
 export async function updateSession(request: NextRequest) {
+  // If Supabase didn't accept the emailed redirect URL it falls back to the
+  // Site URL, landing on /?code=... Send that on to the callback that
+  // exchanges the code, rather than leaving the user signed out.
+  if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient<Database>(supabaseUrl, supabaseKey, {
