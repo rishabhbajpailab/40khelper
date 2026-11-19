@@ -17,10 +17,10 @@ A web companion for playing **Warhammer 40,000**: look up datasheets fast, build
 | --- | --- |
 | Framework | [Next.js 13](https://nextjs.org/) (App Router) + React 18 + TypeScript |
 | Styling | Tailwind CSS, Headless UI, Heroicons, Framer Motion |
-| Data | PostgreSQL ([Vercel Postgres](https://vercel.com/storage/postgres)) via [Prisma](https://www.prisma.io/) |
+| Data | PostgreSQL (any provider, 14+) via [Prisma](https://www.prisma.io/) |
 | Auth | [Supabase](https://supabase.com/) (army lists belong to a Supabase user id) |
 | Client data | React Query, validation with Zod |
-| Hosting | [Vercel](https://40khelper.vercel.app) |
+| Hosting | Anywhere that runs Node 18 or a container (standalone Next.js output + Dockerfile) |
 
 ## Data model
 
@@ -52,7 +52,7 @@ Modelling notes:
 ### Prerequisites
 
 - Node.js 18+
-- A PostgreSQL database. A Vercel Postgres store works, and so does a local `postgres` container.
+- PostgreSQL 14+. The bundled `docker-compose.yml` starts one locally, or point at any managed or self-hosted instance.
 
 ### Setup
 
@@ -61,11 +61,13 @@ git clone https://github.com/rishabhbajpailab/40khelper.git
 cd 40khelper
 npm install                 # also runs `prisma generate`
 
+docker compose up -d db     # optional: local Postgres on :5432
+
 cp .env.example .env.local  # used by Next.js
 cp .env.example .env        # used by the Prisma CLI
-# fill in the database (and Supabase) values in both
+# the defaults match the compose database; change them for any other Postgres
 
-npm run db:migrate          # create the tables
+npm run db:migrate          # apply migrations to your database
 npm run dev                 # http://localhost:3000
 ```
 
@@ -77,24 +79,50 @@ npm run dev                 # http://localhost:3000
 | `npm run build` / `start` | Production build / serve |
 | `npm run lint` | ESLint |
 | `npm run db:generate` | Regenerate the Prisma client |
-| `npm run db:migrate` | Create and apply a migration from the schema |
+| `npm run db:migrate` | Create and apply a migration from the schema (development) |
+| `npm run db:deploy` | Apply committed migrations (production / CI) |
 | `npm run db:studio` | Browse the database in Prisma Studio |
+
+## Deployment
+
+The app doesn't depend on any hosting platform. It needs Node 18+ and a PostgreSQL database reachable through `DATABASE_URL` and `DIRECT_URL`. If you don't use a connection pooler, set both to the same value.
+
+**Container (any host that runs Docker):**
+
+```bash
+docker build -t 40khelper .
+docker run --rm -e DATABASE_URL=... -e DIRECT_URL=... 40khelper \
+  node node_modules/prisma/build/index.js migrate deploy   # once per release
+docker run -p 3000:3000 -e DATABASE_URL=... -e DIRECT_URL=... 40khelper
+```
+
+Or start the whole stack locally with `docker compose up --build`.
+
+**Plain Node:**
+
+```bash
+npm ci && npm run build && npm run db:deploy
+cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
+node .next/standalone/server.js
+```
 
 ## Project layout
 
 ```
 app/              Next.js App Router pages, layouts and API route handlers
-prisma/           Prisma schema (and migrations once created)
+prisma/           Prisma schema and migrations
 utils/            Shared server utilities (Prisma client singleton, cache helpers)
 public/           Static assets
 ```
 
 ## Roadmap
 
-- [x] Next.js + Tailwind scaffold, deployed on Vercel
+- [x] Next.js + Tailwind scaffold
 - [x] Postgres + Prisma connected
 - [x] Data model for factions, detachments, datasheets, weapons, abilities, stratagems and army lists
-- [ ] Initial migration and a seed script for one faction
+- [x] Initial migration
+- [x] Platform-neutral deployment (standalone build, Dockerfile, docker-compose)
+- [ ] Seed script for one faction
 - [ ] Data import pipeline (CSV/JSON → Postgres)
 - [ ] Datasheet browser: faction list → datasheet list → datasheet card
 - [ ] Search across datasheets, weapons and abilities
