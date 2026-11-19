@@ -16,7 +16,8 @@
     "db:new": "supabase migration new",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --local --schema public > types/database.ts",
-    "data:import": "node --env-file-if-exists=.env.local scripts/import-data.ts"
+    "data:import": "node --env-file-if-exists=.env.local scripts/import-data.ts",
+    "test": "node --test \"utils/**/*.test.ts\""
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",

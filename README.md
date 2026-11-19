@@ -2,7 +2,7 @@
 
 A web companion for playing **Warhammer 40,000**: look up datasheets fast, build and check army lists, and keep the table moving on game day.
 
-> Status: early. The data model, auth and row-level security are in place. The UI has sign-in, a datasheet browser and a "my lists" page. See [Roadmap](#roadmap).
+> Status: early. The data model, auth and row-level security are in place. The UI has a datasheet browser, search, a stratagem reference and an army builder with shareable lists. See [Roadmap](#roadmap).
 
 ## What it's for
 
@@ -52,6 +52,7 @@ Modelling notes:
 - **Dice stats are text.** Attacks, Damage and Movement can be `D6+1` or `2D3`. Characteristics shown as `3+` (BS, WS, Sv, Ld) are stored as the number `3`, and AP as a non-positive number (`-2`).
 - **Weapons have profiles.** A missile launcher has frag and krak profiles. Weapon abilities (`ASSAULT`, `RAPID FIRE 1`, `LETHAL HITS`) are a `text[]` on each profile.
 - **Parameterised abilities.** `datasheet_abilities.value` holds the number for Scouts 6", Deadly Demise D3 or Feel No Pain 5+.
+- **List rules live in code.** `utils/army/validate.ts` checks points, the Rule of Three (6 for Battleline and Dedicated Transports, 1 for Epic Heroes), Enhancements (Characters only, unique, from the list's detachment, 3 at most) and Leader attachments. The limits are constants at the top of the file.
 - **Leaders stay in their list.** A composite foreign key means a unit can only be attached to another unit in the same army list.
 - **Search** is Postgres full-text search: generated `fts` columns with GIN indexes on datasheets, abilities and stratagems, queried through the `search_rules(q)` function. Every word is a prefix match, so results appear while you type.
 - **Profiles are automatic.** A trigger on `auth.users` creates a `profiles` row on sign-up.
@@ -119,6 +120,7 @@ npm run db:types               # regenerate types/database.ts
 | `npm run preview` | Build, then serve the built Worker locally |
 | `npm run deploy` | Deploy the built Worker to Cloudflare |
 | `npm run lint` / `typecheck` | ESLint / regenerate binding types and run `tsc` |
+| `npm test` | Unit tests (`node --test`), currently the army list validation rules |
 | `npm run cf:types` | Regenerate `.cloudflare/types` after changing bindings |
 | `npm run db:start` / `db:stop` | Start / stop the local Supabase stack |
 | `npm run db:reset` | Recreate the local DB from migrations and `seed.sql` |
@@ -171,7 +173,7 @@ On the Workers Free and Supabase Free plans, idle use plus background bot traffi
 
 The app is served at **https://40k.glizzy.dev**. It's a Workers Custom Domain on the Cloudflare-managed `glizzy.dev` zone, declared in `cloudflare.config.ts`, so the first deploy creates its DNS record and certificate. The `workers.dev` URL is turned off.
 
-In Supabase → Authentication → URL Configuration, set the **Site URL** to `https://40k.glizzy.dev` and add `https://40k.glizzy.dev/auth/callback` to the redirect URLs. Magic links won't land back in the app until this is done.
+In Supabase → Authentication → URL Configuration, set the **Site URL** to `https://40k.glizzy.dev` and add `https://40k.glizzy.dev/auth/callback**` to the redirect URLs. Keep the trailing `**`: the callback URL carries a `?next=` query string, and without the wildcard Supabase rejects it and falls back to the Site URL. (The middleware forwards a stray `/?code=` to the callback as a safety net, but the user then lands on `/lists` rather than the page they started from.)
 
 ### Schema changes in production
 
@@ -192,9 +194,11 @@ app/                 Pages, layouts and route handlers
   stratagems/        Core + detachment stratagems, filtered by phase and turn
   factions/          Datasheet browser: factions → datasheets → datasheet card
   components/        Shared UI (site nav)
-  lists/             The signed-in user's army lists
+  lists/             The signed-in user's army lists and the list builder (Server Actions)
+  l/[id]/            Read-only public share link for a list
 middleware.ts        Refreshes the Supabase session; gates /lists
 utils/supabase/      Browser, server and middleware Supabase clients, plus the keep-alive job
+utils/army/          List loading, validation rules (with tests) and text export
 utils/format.ts      Display helpers for stats (3 → "3+", null range → "Melee")
 utils/cloudflare.ts  KV and R2 bindings, plus a KV read-through cache helper
 cloudflare.config.ts Worker name, domain, cron schedules and bindings
@@ -220,8 +224,8 @@ supabase/
 - [x] Data import script (JSON → Supabase with the secret key; see [docs/data-format.md](docs/data-format.md))
 - [x] Datasheet browser: faction list → datasheet list → datasheet card
 - [x] Search across datasheets, weapons, abilities and stratagems (Postgres full-text search)
-- [ ] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)
-- [ ] Shareable public list links
+- [x] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)
+- [x] Shareable public list links and a plain-text export
 - [x] Stratagem quick-reference filtered by phase, turn and detachment
 - [ ] Game tracker: CP, VP, turn and phase (Supabase Realtime for a shared table view)
 
