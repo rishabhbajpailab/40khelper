@@ -1,4 +1,4 @@
-import { bindings, defineConfig, defineWorker } from 'cf/config'
+import { bindings, defineConfig, defineWorker, triggers } from 'cf/config'
 
 // Cloudflare Workers config for the app (replaces wrangler.jsonc for vinext).
 // Supabase covers Postgres, auth and RLS; everything else lives on Cloudflare.
@@ -7,7 +7,8 @@ import { bindings, defineConfig, defineWorker } from 'cf/config'
 export default defineConfig({
   worker: defineWorker({
     name: '40khelper',
-    entrypoint: 'vinext/server/fetch-handler',
+    // Wraps vinext's fetch handler and adds the scheduled() handler.
+    entrypoint: './worker/index.ts',
     compatibilityDate: '2026-11-19',
     // Custom Domain on the Cloudflare-managed glizzy.dev zone. Deploying creates
     // the DNS record and certificate; no manual DNS changes are needed.
@@ -19,6 +20,10 @@ export default defineConfig({
       notFoundHandling: 'none',
       runWorkerFirst: ['/*', '!/_next/static/*', '!/*/_next/static/*'],
     },
+    triggers: [
+      // Daily Supabase keep-alive (utils/supabase/keep-alive.ts). Free plan.
+      triggers.scheduled({ schedule: '17 9 * * *' }),
+    ],
     env: {
       ASSETS: bindings.assets(),
       // Key-value store: caching, feature flags, rate-limit counters, short-lived tokens.

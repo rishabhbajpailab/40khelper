@@ -23,7 +23,7 @@ A web companion for playing **Warhammer 40,000**: look up datasheets fast, build
 | Hosting | [Cloudflare Workers](https://developers.cloudflare.com/workers/) (config in `cloudflare.config.ts`) |
 | Key-value store | Cloudflare Workers KV (`KV` binding) |
 | Object storage | Cloudflare R2 (`BUCKET` binding, bucket `40khelper-assets`) |
-| Background jobs | Cloudflare Cron Triggers and Queues on the same Worker, when needed |
+| Background jobs | Cloudflare Cron Triggers on the same Worker (`worker/index.ts`); Queues when needed |
 
 **What goes where:** Supabase owns relational data, auth and row-level security. Everything else (compute, caching, files, scheduled work) runs on Cloudflare.
 
@@ -144,6 +144,18 @@ npx @vinext/cloudflare deploy --dry-run
 npm run build && npm run deploy
 ```
 
+### Scheduled jobs
+
+`worker/index.ts` wraps vinext's request handler and adds a `scheduled()` handler. Schedules live in `cloudflare.config.ts`. There's currently one:
+
+- **Supabase keep-alive**, daily at 09:17 UTC: runs one tiny read so the Free plan project isn't paused for inactivity. Signed-out traffic doesn't touch the database, so without it the project would pause after about a week of no real use. Its output appears in the Worker's logs.
+
+To test it locally, run `npm run preview` and POST `{"cron":"17 9 * * *"}` to `/cdn-cgi/local/explorer/api/local/scheduled?worker=40khelper`.
+
+### Running cost
+
+On the Workers Free and Supabase Free plans, idle use plus background bot traffic costs **$0/month**. Free plan limits fail closed (requests error until the daily reset) rather than billing. The public `/api/health` route only reads from KV, so it can't use up KV's 1,000 writes a day.
+
 ### Supabase auth URLs
 
 The app is served at **https://40k.glizzy.dev**. It's a Workers Custom Domain on the Cloudflare-managed `glizzy.dev` zone, declared in `cloudflare.config.ts`, so the first deploy creates its DNS record and certificate. The `workers.dev` URL is turned off.
@@ -161,15 +173,16 @@ npm run db:push
 
 ```
 app/                 Pages, layouts and route handlers
-  api/health/        Liveness check (also exercises the KV binding)
+  api/health/        Liveness check (read-only KV probe)
   login/             Magic-link sign-in (Server Action)
   auth/callback/     Exchanges the emailed code for a session
   auth/signout/      Signs out (POST)
   lists/             The signed-in user's army lists
 middleware.ts        Refreshes the Supabase session; gates /lists
-utils/supabase/      Browser, server and middleware Supabase clients
+utils/supabase/      Browser, server and middleware Supabase clients, plus the keep-alive job
 utils/cloudflare.ts  KV and R2 bindings, plus a KV read-through cache helper
-cloudflare.config.ts Worker name, compatibility date and bindings
+cloudflare.config.ts Worker name, domain, cron schedules and bindings
+worker/index.ts      Worker entry: vinext fetch handler + scheduled() jobs
 vite.config.ts       vinext + Cloudflare Vite plugin
 types/database.ts    Generated database types (npm run db:types)
 supabase/
