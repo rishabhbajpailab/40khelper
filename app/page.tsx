@@ -21,7 +21,7 @@ const features = [
 ]
 
 export default async function Home() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data } = await supabase.auth.getClaims()
   const email = data?.claims.email as string | undefined
 

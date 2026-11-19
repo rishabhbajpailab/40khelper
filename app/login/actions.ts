@@ -10,8 +10,8 @@ export async function sendMagicLink(formData: FormData) {
   const next = safeNext(String(formData.get('next') ?? '/lists'))
   if (!email) redirect(`/login?error=${encodeURIComponent('Enter an email address')}`)
 
-  const origin = headers().get('origin') ?? ''
-  const supabase = createClient()
+  const origin = (await headers()).get('origin') ?? ''
+  const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },

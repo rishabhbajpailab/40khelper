@@ -5,8 +5,8 @@ import { supabaseKey, supabaseUrl } from './env'
 
 // Supabase client for Server Components, Server Actions and Route Handlers.
 // Create a new one per request; never share it between requests.
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(supabaseUrl, supabaseKey, {
     cookies: {
