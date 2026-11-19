@@ -1,52 +1,31 @@
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
 
 const features = [
   {
     title: 'Datasheets',
-    body: 'Unit stats, weapon profiles, abilities and keywords, searchable at the table.',
+    body: 'Unit stats, weapon profiles, abilities and keywords, readable at the table.',
+    href: '/factions',
+  },
+  {
+    title: 'Search',
+    body: 'Find any datasheet, weapon or ability by name or rules text.',
+    href: '/search',
   },
   {
     title: 'Army builder',
     body: 'Pick a faction and detachment, add units, enhancements and Leaders, and track points.',
+    href: '/lists',
   },
   {
-    title: 'Rules reference',
-    body: 'Detachment rules and stratagems, filtered by the phase you are in.',
-  },
-  {
-    title: 'Game tracker',
-    body: 'Command points, victory points, turn and phase.',
+    title: 'Stratagems',
+    body: 'Core and detachment stratagems, filtered by the phase you are in.',
+    href: '/stratagems',
   },
 ]
 
-export default async function Home() {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-  const email = data?.claims.email as string | undefined
-
+export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-12 px-6 py-16">
-      <nav className="flex items-center justify-end gap-4 text-sm">
-        {email ? (
-          <>
-            <Link href="/lists" className="hover:underline">
-              My lists
-            </Link>
-            <span className="opacity-60">{email}</span>
-            <form action="/auth/signout" method="post">
-              <button type="submit" className="hover:underline">
-                Sign out
-              </button>
-            </form>
-          </>
-        ) : (
-          <Link href="/login" className="hover:underline">
-            Sign in
-          </Link>
-        )}
-      </nav>
-
+    <main className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-12 sm:px-6">
       <header>
         <h1 className="text-4xl font-bold tracking-tight">40k Helper</h1>
         <p className="mt-3 max-w-2xl text-lg opacity-70">
@@ -56,14 +35,14 @@ export default async function Home() {
 
       <section className="grid gap-4 sm:grid-cols-2">
         {features.map((f) => (
-          <div
+          <Link
             key={f.title}
-            className="rounded-lg border border-gray-300 p-5 dark:border-neutral-700"
+            href={f.href}
+            className="rounded-lg border border-gray-300 p-5 transition hover:border-gray-500 dark:border-neutral-700 dark:hover:border-neutral-500"
           >
             <h2 className="text-xl font-semibold">{f.title}</h2>
             <p className="mt-2 text-sm opacity-70">{f.body}</p>
-            <p className="mt-4 text-xs uppercase tracking-wide opacity-50">Coming soon</p>
-          </div>
+          </Link>
         ))}
       </section>
 

@@ -23,9 +23,7 @@ export default async function ListsPage() {
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-16">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">My army lists</h1>
-        <Link href="/" className="text-sm opacity-70 hover:opacity-100">
-          Home
-        </Link>
+
       </div>
 
       {error && <p className="text-sm text-red-600">Couldn&apos;t load lists: {error.message}</p>}

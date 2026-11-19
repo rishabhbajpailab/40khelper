@@ -2,7 +2,7 @@
 
 A web companion for playing **Warhammer 40,000**: look up datasheets fast, build and check army lists, and keep the table moving on game day.
 
-> Status: early. The data model, auth and row-level security are in place. The UI has sign-in and a "my lists" page; the datasheet browser and army builder come next. See [Roadmap](#roadmap).
+> Status: early. The data model, auth and row-level security are in place. The UI has sign-in, a datasheet browser and a "my lists" page. See [Roadmap](#roadmap).
 
 ## What it's for
 
@@ -187,9 +187,12 @@ app/                 Pages, layouts and route handlers
   login/             Magic-link sign-in (Server Action)
   auth/callback/     Exchanges the emailed code for a session
   auth/signout/      Signs out (POST)
+  factions/          Datasheet browser: factions → datasheets → datasheet card
+  components/        Shared UI (site nav)
   lists/             The signed-in user's army lists
 middleware.ts        Refreshes the Supabase session; gates /lists
 utils/supabase/      Browser, server and middleware Supabase clients, plus the keep-alive job
+utils/format.ts      Display helpers for stats (3 → "3+", null range → "Melee")
 utils/cloudflare.ts  KV and R2 bindings, plus a KV read-through cache helper
 cloudflare.config.ts Worker name, domain, cron schedules and bindings
 worker/index.ts      Worker entry: vinext fetch handler + scheduled() jobs
@@ -212,7 +215,7 @@ supabase/
 - [x] Hosted Supabase project with migrations applied
 - [x] Cloudflare Workers hosting via vinext, with KV and R2 bindings
 - [x] Data import script (JSON → Supabase with the secret key; see [docs/data-format.md](docs/data-format.md))
-- [ ] Datasheet browser: faction list → datasheet list → datasheet card
+- [x] Datasheet browser: faction list → datasheet list → datasheet card
 - [ ] Search across datasheets, weapons and abilities (Postgres full-text search)
 - [ ] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)
 - [ ] Shareable public list links
