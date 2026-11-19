@@ -53,6 +53,7 @@ Modelling notes:
 - **Weapons have profiles.** A missile launcher has frag and krak profiles. Weapon abilities (`ASSAULT`, `RAPID FIRE 1`, `LETHAL HITS`) are a `text[]` on each profile.
 - **Parameterised abilities.** `datasheet_abilities.value` holds the number for Scouts 6", Deadly Demise D3 or Feel No Pain 5+.
 - **Leaders stay in their list.** A composite foreign key means a unit can only be attached to another unit in the same army list.
+- **Search** is Postgres full-text search: generated `fts` columns with GIN indexes on datasheets, abilities and stratagems, queried through the `search_rules(q)` function. Every word is a prefix match, so results appear while you type.
 - **Profiles are automatic.** A trigger on `auth.users` creates a `profiles` row on sign-up.
 
 ### Security (row-level security)
@@ -187,6 +188,7 @@ app/                 Pages, layouts and route handlers
   login/             Magic-link sign-in (Server Action)
   auth/callback/     Exchanges the emailed code for a session
   auth/signout/      Signs out (POST)
+  search/            Full-text search (search_rules RPC)
   factions/          Datasheet browser: factions → datasheets → datasheet card
   components/        Shared UI (site nav)
   lists/             The signed-in user's army lists
@@ -216,7 +218,7 @@ supabase/
 - [x] Cloudflare Workers hosting via vinext, with KV and R2 bindings
 - [x] Data import script (JSON → Supabase with the secret key; see [docs/data-format.md](docs/data-format.md))
 - [x] Datasheet browser: faction list → datasheet list → datasheet card
-- [ ] Search across datasheets, weapons and abilities (Postgres full-text search)
+- [x] Search across datasheets, weapons, abilities and stratagems (Postgres full-text search)
 - [ ] Army builder with validation (Rule of Three, enhancement limits, Leader attachments)
 - [ ] Shareable public list links
 - [ ] Stratagem quick-reference filtered by phase and detachment

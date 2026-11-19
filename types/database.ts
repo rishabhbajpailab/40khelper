@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "abilities": {
                   Row: {
-                    "description": string | null,"id": number,"is_aura": boolean,"name": string,"type": Database["public"]['Enums']["ability_type"]
+                    "description": string | null,"fts": unknown,"id": number,"is_aura": boolean,"name": string,"type": Database["public"]['Enums']["ability_type"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "description"?: string | null,"id"?: never,"is_aura"?: boolean,"name": string,"type": Database["public"]['Enums']["ability_type"]
+                    "description"?: string | null,"fts"?: never,"id"?: never,"is_aura"?: boolean,"name": string,"type": Database["public"]['Enums']["ability_type"]
                   }
                   Update: {
-                    "description"?: string | null,"id"?: never,"is_aura"?: boolean,"name"?: string,"type"?: Database["public"]['Enums']["ability_type"]
+                    "description"?: string | null,"fts"?: never,"id"?: never,"is_aura"?: boolean,"name"?: string,"type"?: Database["public"]['Enums']["ability_type"]
                   }
                   Relationships: [
                     
@@ -175,14 +175,14 @@ isOneToOne: false
                   ]
                 },"datasheets": {
                   Row: {
-                    "base_size": string | null,"composition": string | null,"created_at": string,"faction_id": number,"id": number,"lore": string | null,"name": string,"role": Database["public"]['Enums']["battlefield_role"],"slug": string,"updated_at": string,"wargear_options": string | null
+                    "base_size": string | null,"composition": string | null,"created_at": string,"faction_id": number,"fts": unknown,"id": number,"lore": string | null,"name": string,"role": Database["public"]['Enums']["battlefield_role"],"slug": string,"updated_at": string,"wargear_options": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "base_size"?: string | null,"composition"?: string | null,"created_at"?: string,"faction_id": number,"id"?: never,"lore"?: string | null,"name": string,"role"?: Database["public"]['Enums']["battlefield_role"],"slug": string,"updated_at"?: string,"wargear_options"?: string | null
+                    "base_size"?: string | null,"composition"?: string | null,"created_at"?: string,"faction_id": number,"fts"?: never,"id"?: never,"lore"?: string | null,"name": string,"role"?: Database["public"]['Enums']["battlefield_role"],"slug": string,"updated_at"?: string,"wargear_options"?: string | null
                   }
                   Update: {
-                    "base_size"?: string | null,"composition"?: string | null,"created_at"?: string,"faction_id"?: number,"id"?: never,"lore"?: string | null,"name"?: string,"role"?: Database["public"]['Enums']["battlefield_role"],"slug"?: string,"updated_at"?: string,"wargear_options"?: string | null
+                    "base_size"?: string | null,"composition"?: string | null,"created_at"?: string,"faction_id"?: number,"fts"?: never,"id"?: never,"lore"?: string | null,"name"?: string,"role"?: Database["public"]['Enums']["battlefield_role"],"slug"?: string,"updated_at"?: string,"wargear_options"?: string | null
                   }
                   Relationships: [
                     {
@@ -329,14 +329,14 @@ isOneToOne: false
                   ]
                 },"stratagems": {
                   Row: {
-                    "category": Database["public"]['Enums']["stratagem_category"],"cp_cost": number,"detachment_id": number | null,"effect": string,"id": number,"name": string,"phase": Database["public"]['Enums']["game_phase"],"restrictions": string | null,"target": string | null,"turn": string | null,"when": string | null
+                    "category": Database["public"]['Enums']["stratagem_category"],"cp_cost": number,"detachment_id": number | null,"effect": string,"fts": unknown,"id": number,"name": string,"phase": Database["public"]['Enums']["game_phase"],"restrictions": string | null,"target": string | null,"turn": string | null,"when": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "category": Database["public"]['Enums']["stratagem_category"],"cp_cost": number,"detachment_id"?: number | null,"effect": string,"id"?: never,"name": string,"phase": Database["public"]['Enums']["game_phase"],"restrictions"?: string | null,"target"?: string | null,"turn"?: string | null,"when"?: string | null
+                    "category": Database["public"]['Enums']["stratagem_category"],"cp_cost": number,"detachment_id"?: number | null,"effect": string,"fts"?: never,"id"?: never,"name": string,"phase": Database["public"]['Enums']["game_phase"],"restrictions"?: string | null,"target"?: string | null,"turn"?: string | null,"when"?: string | null
                   }
                   Update: {
-                    "category"?: Database["public"]['Enums']["stratagem_category"],"cp_cost"?: number,"detachment_id"?: number | null,"effect"?: string,"id"?: never,"name"?: string,"phase"?: Database["public"]['Enums']["game_phase"],"restrictions"?: string | null,"target"?: string | null,"turn"?: string | null,"when"?: string | null
+                    "category"?: Database["public"]['Enums']["stratagem_category"],"cp_cost"?: number,"detachment_id"?: number | null,"effect"?: string,"fts"?: never,"id"?: never,"name"?: string,"phase"?: Database["public"]['Enums']["game_phase"],"restrictions"?: string | null,"target"?: string | null,"turn"?: string | null,"when"?: string | null
                   }
                   Relationships: [
                     {
@@ -415,7 +415,14 @@ isOneToOne: false
                 }
           }
           Functions: {
-            [_ in never]: never
+            "prefix_tsquery":
+{ Args: { "q": string }; Returns: unknown
+                           },
+"search_rules":
+{ Args: { "max_results"?: number,"q": string }; Returns: {
+              "detail": string,"id": number,"kind": string,"links": Json,"name": string,"rank": number
+            }[]
+                           }
           }
           Enums: {
             "ability_type": "core"|"faction"|"datasheet"|"wargear","battlefield_role": "epic_hero"|"character"|"battleline"|"dedicated_transport"|"fortification"|"other","game_phase": "command"|"movement"|"shooting"|"charge"|"fight"|"any","stratagem_category": "battle_tactic"|"strategic_ploy"|"epic_deed"|"wargear","weapon_type": "ranged"|"melee"
